@@ -15,6 +15,7 @@ def create_spark_session():
     spark_session = SparkSession.builder.appName('spark_parallel_forecasting')\
         .config("spark.dynamicAllocation.enabled", "false")\
         .config("spark.shuffle.service.enabled", "false") \
+        .config('maximizeResourceAllocation', "false")\
         .config("spark.executor.memory", "4g") \
         .config("spark.executor.cores", "1") \
         .config("spark.num.executors", "10") \
