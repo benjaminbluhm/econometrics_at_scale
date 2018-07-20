@@ -13,12 +13,13 @@ from pyspark.sql import SparkSession
 def create_spark_session():
 
     spark_session = SparkSession.builder.appName('spark_parallel_forecasting')\
-        .config("spark.dynamicAllocation.enabled", "false")\
-        .config("spark.shuffle.service.enabled", "false") \
-        .config('maximizeResourceAllocation', "false")\
-        .config("spark.executor.memory", "4g") \
-        .config("spark.executor.cores", "1") \
-        .config("spark.num.executors", "10") \
+        .config("spark.dynamicAllocation.enabled", "true")\
+        .config("spark.shuffle.service.enabled", "true") \
+        .config('maximizeResourceAllocation', "true")\
         .master('yarn').getOrCreate()
+
+    # .config("spark.executor.memory", "5g") \
+    # .config("spark.executor.cores", "1") \
+    # .config("spark.num.executors", "50") \
 
     return spark_session

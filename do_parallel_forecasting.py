@@ -6,7 +6,7 @@ def do_parallel_forecasting(spark_session, config):
     df = spark_session.read.parquet(config['path_training_data_parquet'])
 
     # Create RDD with dictinct IDs and repartition dataframe into 250 chunks
-    time_series_ids = df.select("ID").distinct().repartition(250).rdd
+    time_series_ids = df.select("ID").distinct().repartition(100).rdd
 
     # Function to import model Python module on Spark executor for parallel forecasting
     def import_module_on_spark_executor(time_series_ids, config):
