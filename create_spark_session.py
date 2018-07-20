@@ -13,8 +13,11 @@ from pyspark.sql import SparkSession
 def create_spark_session():
 
     spark_session = SparkSession.builder.appName('spark_parallel_forecasting')\
+        .config("spark.dynamicAllocation.enabled", "false")\
+        .config("spark.shuffle.service.enabled", "false") \
+        .config("spark.executor.memory", "4g") \
+        .config("spark.executor.cores", "1") \
+        .config("spark.num.executors", "10") \
         .master('yarn').getOrCreate()
 
-    spark_context = spark_session.sparkContext
-
-    return spark_context, spark_session
+    return spark_session

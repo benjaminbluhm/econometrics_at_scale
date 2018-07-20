@@ -1,3 +1,5 @@
+from datetime import datetime
+
 def do_parallel_forecasting(spark_session, config):
 
     # Load time series data into Spark dataframe
@@ -11,8 +13,12 @@ def do_parallel_forecasting(spark_session, config):
         from fit_model_and_forecast import fit_model_and_forecast
         return fit_model_and_forecast(time_series_ids, config)
 
+    print('start training')
     # Parallel model fitting and forecasting
+    time_start_training = datetime.now()
     time_series_ids.foreach(lambda x: import_module_on_spark_executor(x, config))
+    time_training = datetime.now() - time_start_training
+    print('time training: ' + str(time_training))
 
 
 
