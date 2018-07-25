@@ -13,4 +13,8 @@ def create_config():
     # Define AWS S3 endpoint for your region
     config['s3_host'] = 's3.eu-central-1.amazonaws.com'
 
+    # Define series and evaluation lengths
+    config['len_series'] = 1000
+    config['len_eval'] = 50
+
     return config

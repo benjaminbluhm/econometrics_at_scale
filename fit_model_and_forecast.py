@@ -21,7 +21,7 @@ def fit_model_and_forecast(id_list, config):
     # Loop over time series IDs
     for i, id in enumerate(id_list):
 
-        print('Item: ' + str(i))
+        print('Fitting model: ' + str(i))
 
         # Determine S3 file path and load data into pandas dataframe
         file_path = s3.glob(config['path_training_data_parquet'] + 'ID=' + str(id) +
@@ -32,16 +32,20 @@ def fit_model_and_forecast(id_list, config):
         df_data = df_data.sort_values('ORDER')
 
         # Initialize dataframe to store forecast
-        df_forecasts = pd.DataFrame(np.nan, index=range(0, 100), columns=['FORECAST'])
+        df_forecasts = pd.DataFrame(np.nan, index=range(0, config['len_eval']),
+                                    columns=['FORECAST'])
 
         # Add columns with ID, true data and ordering information
         df_forecasts.insert(0, 'ID', id, allow_duplicates=True)
-        df_forecasts.insert(1, 'ORDER', np.arange(1, 101))
-        df_forecasts.insert(2, 'DATA', df_data['DATA'][range(900, 1000)].values,
-                            allow_duplicates=True)
+        df_forecasts.insert(1, 'ORDER', np.arange(1, config['len_eval'] + 1))
+        df_forecasts.insert(2, 'DATA', df_data['DATA'][range((config['len_series'] -
+                                                              config['len_eval']),
+                                                             config['len_series'])].values,
+                                                             allow_duplicates=True)
 
         # Loop over successive estimation windows
-        for j, train_end in enumerate(range(899, 999)):
+        for j, train_end in enumerate(range((config['len_series'] - config['len_eval'] - 1),
+                                            (config['len_series'] - 1))):
 
             # Fit ARMA(2,2) model and forecast one-step ahead
             model = ARMA(df_data['DATA'][range(0, train_end+1)], (2, 2)).fit(disp=False)

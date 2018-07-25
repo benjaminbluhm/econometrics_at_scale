@@ -18,8 +18,4 @@ def create_spark_session():
         .config('maximizeResourceAllocation', "true")\
         .master('yarn').getOrCreate()
 
-    # .config("spark.executor.memory", "5g") \
-    # .config("spark.executor.cores", "1") \
-    # .config("spark.num.executors", "50") \
-
     return spark_session
