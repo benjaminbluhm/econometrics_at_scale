@@ -18,14 +18,14 @@ def main():
     # partition_and_save_dataset(spark_session, config)
 
     # Perform non-parallel model fitting and forecasting
-    do_non_parallel_forecasting(spark_session, config)
+    # do_non_parallel_forecasting(spark_session, config)
 
-    # # Add Python module to Spark context for distributed model fitting and forecasting
-    # spark_session.sparkContext.addPyFile(config['base_path_hadoop'] +
-    #                                      'fit_model_and_forecast.py')
-    #
-    # # Perform parallel model fitting and forecasting
-    # do_parallel_forecasting(spark_session, config)
+    # Add Python module to Spark context for distributed model fitting and forecasting
+    spark_session.sparkContext.addPyFile(config['base_path_hadoop'] +
+                                         'fit_model_and_forecast.py')
+
+    # Perform parallel model fitting and forecasting
+    do_parallel_forecasting(spark_session, config)
 
 if __name__ == '__main__':
     main()
