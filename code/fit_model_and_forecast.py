@@ -21,8 +21,6 @@ def fit_model_and_forecast(id_list, config):
     # Loop over time series IDs
     for i, id in enumerate(id_list):
 
-        print('Fitting model: ' + str(i))
-
         # Determine S3 file path and load data into pandas dataframe
         file_path = s3.glob(config['path_training_data_parquet'] + 'ID=' + str(id) +
                             '/*.parquet')

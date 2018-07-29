@@ -13,9 +13,6 @@ from pyspark.sql import SparkSession
 def create_spark_session():
 
     spark_session = SparkSession.builder.appName('spark_parallel_forecasting')\
-        .config("spark.dynamicAllocation.enabled", "true")\
-        .config("spark.shuffle.service.enabled", "true") \
-        .config('maximizeResourceAllocation', "true")\
         .master('yarn').getOrCreate()
 
     return spark_session

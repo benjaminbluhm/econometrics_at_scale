@@ -15,7 +15,7 @@ def main():
     config = create_config()
 
     # Partition and save dataset in Parquet file format to S3
-    # partition_and_save_dataset(spark_session, config)
+    partition_and_save_dataset(spark_session, config)
 
     # Perform non-parallel model fitting and forecasting
     # do_non_parallel_forecasting(spark_session, config)
