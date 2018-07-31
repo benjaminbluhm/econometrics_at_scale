@@ -1,4 +1,4 @@
-The repository contains the source code and dataset to reproduce the parallel forecasting exercise described in the paper:
+The repository contains the source code and dataset to reproduce the parallel computing exercise described in the paper:
 
 ### Time Series Econometrics at Scale - A Practical Guide to Parallel Computing in (Py)Spark
 
