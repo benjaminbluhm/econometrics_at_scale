@@ -1,0 +1,584 @@
+\documentclass[11pt]{article}
+\usepackage{natbib}
+% \setcitestyle{aysep={,}} % needed to fully emulate Harvard's "dcu" citation style
+ \usepackage{har2nat}
+\usepackage{comment}
+\usepackage[utf8]{inputenc}
+\usepackage{geometry}
+\geometry{a4paper}%, textwidth=15cm, textheight=22.5cm}
+\newenvironment{changemargin}[2]{%
+  \begin{list}{}{%
+    \setlength{\topsep}{0pt}%
+    \setlength{\leftmargin}{#1}%
+    \setlength{\rightmargin}{#2}%
+    \setlength{\listparindent}{\parindent}%
+    \setlength{\itemindent}{\parindent}%
+    \setlength{\parsep}{\parskip}%
+  }%
+  \item[]}{\end{list}}
+\usepackage{amsmath, amssymb, amsthm, latexsym, amsfonts, graphicx}
+\usepackage{rotating}
+\usepackage[debugshow]{tabulary}
+\usepackage{textcomp}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{booktabs}
+\usepackage[usenames]{color}
+\usepackage{authblk}
+\usepackage{graphicx}
+\graphicspath{ {./Charts/} }
+\usepackage{rotating}
+\usepackage{fancyhdr}
+\usepackage{longtable}
+\usepackage[table]{xcolor}
+%\usepackage{slashbox}
+\usepackage{multirow}
+\usepackage{bigstrut}
+\usepackage{xtab}
+%\usepackage{showkeys}
+%\usepackage[pdfborder=0]{hyperref}
+\usepackage{bm}
+\usepackage{lscape}
+\usepackage{placeins}
+\usepackage{rotating}
+\usepackage{pdflscape}
+%\usepackage[section]{placeins}
+
+\usepackage[font=normalsize,justification=centerlast]{caption}
+%\usepackage[font=normalsize,format=hang]{caption}
+%\usepackage[font=normalsize,labelfont=bf]{caption}
+
+%\renewcommand{\emph}{\textcolor{red}}
+\renewcommand{\cite}{\citet}
+
+\newcommand{\chiara}{\textcolor{blue}}
+\newcommand{\andi}{\textcolor{red}}
+
+
+\renewcommand{\arraystretch}{1.2}
+\definecolor{LightBlue}{rgb}{0.95,0.95,0.98}
+\definecolor{TableHead}{rgb}{0.85,0.85,0.98}
+\definecolor{TableHead1}{rgb}{0.65,0.65,0.98}
+
+\usepackage[utf8]{inputenc}
+
+% Default fixed font does not support bold face
+\DeclareFixedFont{\ttb}{T1}{txtt}{bx}{n}{12} % for bold
+\DeclareFixedFont{\ttm}{T1}{txtt}{m}{n}{12}  % for normal
+
+% Custom colors
+\usepackage{color}
+\definecolor{deepblue}{rgb}{0,0,0.5}
+\definecolor{deepred}{rgb}{0.6,0,0}
+\definecolor{deepgreen}{rgb}{0,0.5,0}
+
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{tikz}
+
+
+% Python style for highlighting
+\newcommand\pythonstyle{\lstset{
+language=Python,
+frame=none,
+backgroundcolor = \color{gray!20},
+basicstyle=\tiny,
+otherkeywords={self},             % Add keywords here
+keywordstyle=\tiny\color{deepblue},
+emph={MyClass,__init__, def, return, lambda, False, True},          % Custom highlighting
+emphstyle=\tiny\color{deepred},    % Custom highlighting style
+stringstyle=\color{blue},
+frame=tlrb,                         % Any extra options here
+showstringspaces=false            % 
+}}
+
+
+% Python environment
+\lstnewenvironment{python}[1][]
+{
+\pythonstyle
+\lstset{#1}
+}
+{}
+
+% Python for external files
+\newcommand\pythonexternal[2][]{{
+\pythonstyle
+\lstinputlisting[#1]{#2}}}
+
+% Python for inline
+\newcommand\pythoninline[1]{{\pythonstyle\lstinline!#1!}}
+
+\renewcommand{\lstlistingname}{Box}
+
+\usepackage{enumitem}
+\newcommand\litem[1]{\item{\bfseries #1,\enspace}}
+
+\usepackage[colorlinks = true,
+            linkcolor = blue,
+            urlcolor  = blue,
+            citecolor = blue,
+            anchorcolor = blue]{hyperref}
+
+\usepackage{cleveref}
+\usepackage{minted}
+
+
+\lstset{basicstyle=\tiny,
+backgroundcolor = \color{lightgray},
+  showstringspaces=false,
+  commentstyle=\color{red},
+  keywordstyle=\color{blue}
+}
+
+\usepackage{siunitx} % Required for alignment
+
+\sisetup{
+  round-mode          = places, % Rounds numbers
+  round-precision     = 2, % to 2 places
+}
+
+\usepackage[flushleft]{threeparttable}
+
+\usepackage{authblk}
+
+\begin{document}
+
+\title{Time Series Econometrics at Scale: \linebreak A Practical Guide to Parallel Computing in (Py)Spark}
+\author{Benjamin Bluhm%
+  \thanks{Email: \texttt{benjaminbluhm@gmail.com}}}
+\maketitle
+
+\begin{abstract}
+This paper provides a practical programming guide to setting up a minimum working example of a distributed system for parallel time series analysis. The system is built in Apache Spark on top of Amazon's Hadoop-based service Elastic MapReduce (EMR). A simple forecasting exercise with 1,000 time series illustrates the proposed parallelization scheme, which reduces total runtime performance by about 95\% relative to a single-core, single-machine setting. The ease of implementing this scheme makes this guide a useful reference for econometricians with a limited background in parallel programming. To facilitate reproducibility of the practical steps in this guide, the PySpark/Python code is available for download on github.\footnote{The github repository to reproduce the steps in this guide is available via: \url{https://github.com/benjaminbluhm/spark\_parallel\_forecasting}}
+\end{abstract}
+
+\emph{Keywords}: Time Series Econometrics, Distributed Computing, Apache Spark
+
+\section{Introduction}
+
+Time series analysis plays a crucial role in the decision making process of many public institutions and private firms. The availability of more and more data in recent years offers promising opportunities to optimize this data-driven decision process. At the same time, the need to process ever growing amounts of data poses significant computational challenges requiring new analytical tools and approaches. Real-world forecasting systems in industries including manufacturing, retail, finance and energy nowadays have to process large forecasting workloads scaling to millions of time series. The large size of these datasets requires a high degree of parallelism to enable data scientists and researchers to quickly engage in data exploration, model fitting and parameter tuning. In this context, substantial progress has been made over recent years in developing distributed systems that leverage the power of massive clusters of shared machines. 
+
+While some papers by large internet companies illustrate how to take advantage of distributed systems for large-scale parallel time series analysis, the literature provides little guidance on the technical implementation details. The objective of this paper is to bridge this gap by providing a practical programming guide to setting up a minimum working example of a distributed system suitable for parallel time series analysis and forecasting. The system builds on Apache Spark on top of Amazon's Hadoop-based service Elastic MapReduce (EMR) which supports memory and CPU-intensive parallel computations. I will illustrate the parallelization scheme, which reduces total runtime performance by about 95\% relative to a single-core single-machine setting, by walking through a simple forecasting exercise applied to a dataset of 1,000 time series. The ease of implementing this scheme makes this guide a useful reference for econometricians with a limited background in parallel programming. 
+
+The remainder of the paper is organized as follows. The next section will briefly review the related work on distributed computing frameworks for time series analysis. Section \ref{sec:parallel_computing_architecture} will elaborate on the parallel computing architecture and provide some guidance on setting up a Spark cluster on EMR. The description of the dataset and some important aspects of data partitioning and formatting are given in section \ref{sec:dataset}. A simple time series forecasting example is presented in section \ref{sec:forecasting_example}, while the parallelization logic is outlined in section \ref{sec:parallelization}. Evidence on scalability in terms of total runtime performance is presented in section \ref{sec:empirical_results}, before concluding the paper in section \ref{sec:conclusions}.   
+
+\section{Related work}
+\label{sec:related_work}
+
+Different parallel systems for time series forecasting have been proposed in the literature. \cite{Stokely2011LargeScalePS} introduce a computational infrastructure for large-scale statistical
+computing at \emph{Google} using the MapReduce paradigm for R. Their technique is able to generate hundreds of thousands of forecasts in a matter of hours, using the \emph{googleparallelism} package. An end-to-end machine learning system for probabilistic demand forecasting at \emph{Amazon} built on Apache Spark is described in \cite{Boese2017}. The platform scales to large datasets containing millions of time series. The authors propose a trivial parallel execution scheme for what they call a \emph{local learning} approach, using Spark's \emph{map()} operator to distribute model fitting and forecasting tasks across the cluster. Note that the simple parallelization logic described in this practical guide follows a very similar approach. A brief review of other parallel machine learning frameworks is given by \cite{chun2015dolphin}.
+
+Noteworthy, there are two libraries for distributed time series analysis in Apache Spark. The \emph{spark-ts} package provides functionalities for fitting time series models and manipulating large time series datasets.\footnote{For further details see: \url{https://github.com/sryza/spark-timeseries}} The package contains some frequently used univariate time series models, however, it is not under active development anymore and does not allow for parallel execution of algorithms not covered by the package (for example, multivariate time series models).\footnote{The set of supported models is found here: \url{https://github.com/sryza/spark-timeseries/tree/master/python/sparkts/models}} Another initiative is \emph{Flint}, a library for highly optimized time series operations in Spark, which provides functionalities to efficiently compute across large panel and high frequency data.\footnote{The github repository can be found at \url{https://github.com/twosigma/flint}}. To the best of my knowledge, at the time of writing this guide \emph{Flint} does not provide methods to fully parallelize all stages of the model fitting and forecasting process. 
+
+\section{Parallel computing architecture}
+\label{sec:parallel_computing_architecture}
+
+In this section, I describe the design of the high-level architecture as the basis for a distributed system and I will give some guidance on setting up a Spark cluster using Amazon's EMR service. Note that the choice of Amazon as a service provider is somewhat arbitrary and, thus, the distributed system described in this guide could be implemented on any other suitable cloud-based or on-premise Hadoop platform. Moreover, this system is not limited to the use case of time series analysis and can be applied to any expensive computing workload that can be broken up into subsets of independent tasks. For example, the parallelization scheme in this guide could be adopted to perform tasks such as value function iteration, extreme bounds analysis, forecast combination or complete subset regression. A comprehensive guide on parallelization techniques and use cases in economics is provided by \cite{FernandezVillaverde2018}. 
+
+\subsection{EMR architecture}
+\label{sec:emr_architecture}
+
+The choice of the parallel computing architecture presented in this section is guided by the following goals:
+
+ \begin{itemize}
+  \item Facilitate parallel computations on large time series datasets
+  \item Highly scalable to large clusters of machines
+  \item Minimal effort to start a cluster and pre-install user-defined libraries
+  \item Use of Python as a programming language
+ \end{itemize}
+
+Regarding the choice of the programming language, Spark applications can be implemented in different languages including Scala, Java, Python and R. For the purpose of this practical guide, I will use Python because it offers a variety of time series libraries and it also has become the default language for many data scientists and researchers. Nonetheless, the steps in this guide can be reproduced in any of the other languages.
+
+A simple diagram of the Amazon EMR service architecture is illustrated in \cref{fig:parallel_computing_ architecture}. There are four layers, providing different capabilities and functionalities to the cluster. The storage layer uses the EMR File System (EMRFS) which contains Amazon S3 as a distributed, scalable file system, where input and output data is stored. In the Spark application of this guide, time series data and output from model fitting and forecasting will be stored in Amazon S3. Note that Amazon S3 is a persistent storage device so after terminating a cluster you still have all the data at your disposal and you also have the option to download the data to your local machine.  
+
+\begin{figure}[H]
+    \centering
+    \caption{Amazon EMR Architecture}
+	\label{fig:parallel_computing_ architecture}
+\includegraphics[scale=0.8]{C:/Users/benjamin/Downloads/paper/ML_Architecture.png}
+%\includegraphics[scale=0.8]{/Users/benjaminbluhm/Downloads/paper/ML_Architecture.png}
+\end{figure}
+
+The resource management layer uses YARN (Yet Another Resource Negotiator) and is in charge of managing cluster resources and scheduling data-processing jobs. Moreover, EMR's cluster resource manager is responsible for administering YARN components and keeping the cluster in good health. 
+
+The data processing framework layer uses Apache Spark, which was first introduced by \cite{Zaharia2010} at UC Berkeley for large-scale machine learning use cases. In the meantime, Spark has turned into an open-source, distributed data processing platform for big data workloads relating to machine learning, stream processing and graph analytics.\footnote{For further details on Spark see:  \url{https://spark.apache.org/}} Spark is based on a master/worker architecture where the Spark driver communicates with the YARN cluster resource manager as a single coordinator which is responsible for managing the Spark workers in which executors run. The Spark driver, also known as the master node, is a Java process that hosts a Spark application and executors are Java processes that run computations and store data defined by your Spark application code (for example, a Python module for time series analysis). A more elaborate description of Spark's architecture can be found, for example, in \cite{Chambers2018}. In the context of the forecasting exercise of this paper, each Spark executor processes a different subset of time series contained in the dataset stored in Amazon S3. As a result the degree of parallelism is crucially determined by the number of executors spawned by the Spark cluster. Note that this approach requires each individual time series to fit into the memory of an individual executor process which is a realistic scenario for many real-world time series datasets.\footnote{High-frequency time series with millions of data points may be a notable exception to the above mentioned scenario. In this case, it may be more appropriate to rely on parallel frameworks like \emph{Flint} or \emph{spark-ts}, explicitly allowing to operate in parallel on individual time series.}    
+
+Finally, the EMR cluster contains a layer for applications and programs that interact with Spark. For the use case presented in this paper, we will deploy various Python libraries to the cluster, facilitating econometric tasks as well as data exchange between the storage layer and Spark. 
+
+\subsection{Setting up a Spark cluster on EMR}
+\label{sec:cluster_setup}
+
+If you do not have an AWS account yet, you need to sign up for one. Once you have set up an account, you have to create an S3 bucket and an Elastic Compute Cloud (EC2) key pair to be able to connect to the cluster nodes via Secure Shell (SSH) protocol. These steps are described in more detail in the official AWS EMR documentation.\footnote{\url{https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-gs-prerequisites.html}} In what follows, I will only emphasize the steps and configurations in the cluster creation process which are specific to the use case in this guide and not immediate from the official documentation. 
+
+As the Python program in the following sections was developed under Spark version 2.2.1, the first step is to select a corresponding EMR release when launching the cluster. Under advanced options, select \emph{emr-5.12.1} in the software configuration panel and make sure to check the box with \emph{Spark 2.2.1}. Next you have to configure the hardware of your cluster including the instance type and the number of instances. While the hardware configuration strongly depends on the resource requirements (and budget considerations) of the specific use, the forecasting example in this paper is based on a general-purpose instance type, providing a balanced ratio of the number of CPUs relative to the amount of RAM.\footnote{A list of available instance types and prices can be found at: \url{https://aws.amazon.com/de/ec2/pricing/on-demand/}.}
+
+Once you have selected your preferred hardware configuration, go to the next section which asks you to specify some general cluster settings. At the bottom of the page there is  a bootstrap action panel where custom actions can be specified to install additional software or to customize the configuration of cluster instances. In essence, bootstrap actions are scripts that run on all nodes after the cluster is launched. We will use the bootstrap action to install a few python libraries required for the parallel forecasting exercise. For this purpose, a shell script called \emph{install\_python\_libraries.sh} with the following content must be uploaded to a folder in the S3 bucket:
+
+\begin{lstlisting}[language=bash, backgroundcolor=\color{yellow!20}, caption={\emph{install\_python\_libraries.sh}}]
+#!/bin/bash -xe
+sudo pip install -U pandas scipy fastparquet s3fs s3io joblib statsmodels
+\end{lstlisting}
+Next, add the bootstrap action by selecting \emph{custom action} and, under the \emph{configure and add} button, browse the S3 path to the shell script (no optional arguments needed). After adding the custom bootstrap action, move on to the last step \emph{security settings} where you can simply follow the default instructions. Finally, the cluster can be be created.
+
+In order to deploy the Spark application with our parallel forecasting algorithm to the master node, we have to establish an SSH connection between our local machine and the master node. To enable this connection we need to edit the security rules for the inbound traffic of the master node after the cluster has been successfully created. In particular, you need to add a new inbound security rule to the master group, setting the inbound type to SSH, the port range to 22, and the source to your local machine's IP address.\footnote{More details on controlling network traffic on your cluster can be found at: \url{https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-security-groups.html}}  
+
+Once the cluster is up and running and the security rule for SSH inbound traffic has been added, the Spark application can be deployed to the master node. One possible way to deploy an application is to use a professional deployment tool which is included in different integrated development environments (IDE). When working with Python, one good option for a deployment tool is \emph{PyCharm} which is a commonly used IDE among Python developers.\footnote{Note that you will need to install the Professional Edition of PyCharm because the community edition does not provide functionality to connect to a remote machine. A brief guide on deploying your PyCharm project to AWS is provided in the following blog: \url{https://minhoryang.github.io/ko/posts/connect-aws-ec2-instance-with-pycharm-professional/}} 
+
+
+
+
+
+\section{Dataset}
+\label{sec:dataset}
+
+This section describes the dataset and discusses the choice of data partitioning and file storage format for saving the data in the S3 bucket. Subsequently, I will walk trough a PySpark program that performs the data partitioning and storage tasks.  
+
+\subsection{Description}
+\label{sec:dataset_description}
+
+The dataset consists of 1,000 simulated time series with each draw of length 1,000. While many real-world time series datasets are considerably larger, the dataset is sufficiently large to demonstrate the performance gains from parallelizing the model fitting and forecasting process. Moreover, the limited size of the dataset facilitates easy reproducibility of the steps in this guide. 
+
+The time series are simulated from an \emph{Autoregressive Moving Average Process (ARMA)} process, defined as follows (see, for example, \cite{Hamilton1994}):
+
+\begin{equation} \label{eq1}
+\begin{split}
+\left(1-\sum_{i=1}^2 \alpha_iL^i\right)X_t = \left(1+\sum_{i=1}^2 \theta_iL^i\right)\epsilon_t, \quad \epsilon_t \sim \mathcal{N}(\mu,\,\sigma^{2})
+\end{split}
+\end{equation}
+where $X$ is a real valued vector ordered by time index $t$, $L$ is a lag operator, $\alpha_i$ and $\theta_i$ define the parameters on the autoregressive (AR) and moving average (MA) component, and $\epsilon_t$ is an independent, identically distributed disturbance term sampled from a normal distribution. 
+
+Time series draws are generated with the \emph{arima\_sim()} method in \emph{R's} \emph{stats} package (see \cite{R2016}). Following an example in the official package documentation, the orders of the AR and MA components are restricted to two and the AR and MA coefficients $\alpha_1$, $\alpha_2$, $\theta_1$, $\theta_2$ are set to 0.89, -0.49, -0.23, 0.25 respectively. The variance $\sigma^{2}$ of the disturbance term is set to 0.18.\footnote{For further details see: \url{https://stat.ethz.ch/R-manual/R-devel/library/stats/html/arima.sim.html}}
+
+The simulated time series data is written to a csv file with three columns. One column holds the time series data, a second column a unique ID for each series and a third column a sequence of numbers specifying the order of the data for each series.\footnote{In analogy to a timestamp or date in a real-world time series dataset.} The last column is required because Spark does not preserve the original order of records when distributing the data across the cluster. To be able to fit a time series model after processing the data in Spark we therefore need to add this column in order to recover the original ordering of the data.     
+
+\subsection{Data partitioning and file storage format}
+\label{sec:dataset_partitioning}
+
+Suppose you have a large time series dataset with thousands of series and you fit models only for small subsets of series on each Spark executor in a parallel fashion as described in section \ref{sec:parallel_computing_architecture}. In this setting, it is important to limit the size of the input data processed on each executor. If the input data on a single executor is (too) large this may have different negative implications. First, when the input data doesn't fit into the executor's memory the application will fail and, second, the computational overhead for reading large datasets can slow down the application significantly, potentially eliminating some of the performance gains from parallelization. Thus, it makes sense to break up a large dataset into smaller chunks where each chunk only contains a subset of all items. In a distributed file system, typically these smaller data chunks are stored in a separate directory where the directory name contains an identifier for this chunk. In Spark, the logic of splitting the dataset into smaller pieces is defined by one or multiple partitioning columns, using the \emph{partitionBy()} method.   
+
+Another aspect of importance is the storage format of the dataset. The example in this guide uses Apache Parquet which is a free and open-source column-storage format of the Apache Hadoop ecosystem.\footnote{For further details on Apache Parquet see: \url{https://parquet.apache.org/documentation/latest/}} Using Parquet as opposed to traditional storage formats offers some important benefits. As Parquet is known to provide an efficient data compression and encoding scheme, data volume will be substantially lower and data query runtimes will be much faster compared to, for example, csv format. The latter aspect crucially determines the performance gains from parallelization and, thus, also the efficient use of cluster resources.   
+
+\subsection{Preparing the dataset in Spark}
+\label{sec:dataset_preparation}
+
+Finally, let's take a look at the PySpark program that creates a Spark session and performs the data preparation tasks, i.e. loading the time series dataset from a csv file into a Spark dataframe and writing it back to S3 in Parquet file format. A Spark session must be created first to be able to load the time series data into Spark, using the \emph{create\_spark\_session.py} module:\footnote{Note that all Python modules presented in this guide are located in the following directory on the master node: \emph{'/home/hadoop/spark\_parallel\_forecasting'}.} 
+
+\begin{python}[caption={\emph{create\_spark\_session.py}}]
+# Import Python modules
+import os
+import sys
+
+# Set path
+os.environ['SPARK_HOME'] = '/usr/lib/spark'
+sys.path.append('/usr/lib/spark/python')
+sys.path.append('/usr/lib/spark/python/lib/py4j-0.10.4-src.zip')
+
+# Import PySpark modules
+from pyspark.sql import SparkSession
+
+def create_spark_session():
+
+    spark_session = SparkSession.builder.appName('spark_parallel_forecasting')\
+        .master('yarn').getOrCreate()
+
+    return spark_session
+\end{python}
+
+The function call \emph{create\_spark\_session()} returns a Spark session, encapsulating a Spark context. The Spark context acts as the master of your application and can be used to create distributed entities such as Resilient Distributed Datasets (RDD), a fault-tolerant collection of elements which can be operated on in parallel. The Spark session serves as the entry point to programming in Spark with the Dataset and DataFrame API. 
+
+After creating a Spark session, we load a dictionary with some basic configurations, including file path definitions and the AWS S3 endpoint used to establish a connection between the Spark application and the S3 file system:
+
+\begin{python}[caption={\emph{create\_config.py}}]
+def create_config():
+
+    config = {}
+
+    # Define Path
+    config['base_path_hadoop'] = '/home/hadoop/spark_parallel_forecasting/'
+    config['base_path_s3'] = 's3://data-folders/spark_parallel_forecasting/'
+    config['path_training_data_csv'] = config['base_path_s3'] + 'training_data/csv/rawdata.csv'
+    config['path_training_data_parquet'] = config['base_path_s3'] + 'training_data/parquet/'
+    config['path_forecasts'] = config['base_path_s3'] + 'forecasts/'
+    config['path_models'] = config['base_path_s3'] + 'fitted_models/'
+
+    # Define AWS S3 endpoint for your region
+    config['s3_host'] = 's3.eu-central-1.amazonaws.com'
+
+    # Define series and evaluation length
+    config['len_series'] = 1000
+    config['len_eval'] = 50
+
+    return config
+\end{python}
+
+Now, the dataset can be prepared by calling the \emph{partition\_and\_save\_dataset()} function. After loading the csv file into a Spark dataframe, the dataset is partitioned by the \emph{ID} column and, thus, a separate Parquet file and directory is created for each time series. Note that other partitioning schemes may be more suitable depending on the use case. For example, if the goal is to jointly model subsets of time series, it would be advisable to allocate these item subsets into one partition:\footnote{As a data compression type, \emph{gzip} is used. Note that I do not investigate the performance impact of the compression type. The other two available Parquet compression types are \emph{snappy} and \emph{uncompressed}.}    
+
+\begin{python}[caption={\emph{partition\_and\_save\_dataset.py}}]
+def partition_and_save_dataset(spark_session, config):
+
+    df = spark_session.read.option("header", "true")\
+        .csv(config['path_training_data_csv'], inferSchema=True)
+
+    df.repartition("ID").write.option("compression", "gzip").mode("overwrite")\
+        .partitionBy("ID").parquet(config['path_training_data_parquet'])
+\end{python}  
+
+All main tasks that the program will perform are contained in the \emph{main.py} module:
+
+\begin{python}[caption={\emph{main.py}}]
+# Import Python modules
+from create_spark_session import create_spark_session
+from create_config import create_config
+from partition_and_save_dataset import partition_and_save_dataset
+
+
+def main():
+
+    # Create Spark session
+    spark_session = create_spark_session()
+
+    # Load config dictionary
+    config = create_config()
+
+    # Partition and save dataset in Parquet file format to S3
+    partition_and_save_dataset(spark_session, config)
+
+if __name__ == '__main__':
+    main()
+\end{python}
+
+
+\section{A simple forecasting example}
+\label{sec:forecasting_example}
+
+Given a total sample size of 1,000 for each time series, the last 50 observations of the sample are used for forecast evaluation. The first 950 observations are used to fit an initial \emph{ARMA(2,2)} model which is then used to produce the first forecast. I use a recursive estimation scheme, i.e. the size of the estimation sample for model fitting is extended by one observation as one makes forecasts for successive observations. As a result, a total of 50,000 estimations is performed across all time series in the dataset. The forecasts as well as the final model, fitted on the full sample for each time series, are stored in the S3 bucket. For the sake of simplicity, only one-step ahead forecasts are generated. However, the Python module presented in this section can easily be extended to include additional models and forecasts for multiple horizons.
+
+While the forecasts are stored in Parquet file format, the final model is saved as a \emph{pickle} object which is a standard format for model persistence in Python.\footnote{See for example: \url{http://scikit-learn.org/stable/modules/model\_persistence.html}} For model fitting and forecasting, I use Python's \emph{StatsModels} module (see \cite{seabold2010statsmodels}), providing a class for fitting \emph{ARMA} models via maximum likelihood. The \emph{fastparquet} module, which is a Python interface to the Parquet file format, is used to read  and write Parquet files in the S3 bucket from Python. The fitted model objects are saved via the \emph{pickle} module which implements a protocol for serializing and de-serializing Python objects. The set of Python modules installed on the cluster is complemented by the modules \emph{pandas} (see \cite{mckinney-proc-scipy-2010}), \emph{scipy} (see \cite{Jones2001}), \emph{s3fs}, \emph{s3io}, \emph{joblib}.\footnote{The \emph{pandas} module is used to the store forecasts in a dataframe and \emph{scipy} is needed as a dependency for the \emph{StatsModels} module. The other three mentioned modules are required to manage connections and enable file exchange between S3 and Python.}
+
+A minimum working example of the time series forecasting algorithm is provided in the \emph{fit\_model\_and\_forecast.py} module below: 
+
+\begin{python}[caption={\emph{fit\_model\_and\_forecast.py}}]
+# Import python modules
+import s3fs
+import joblib
+import s3io
+import boto
+import pandas as pd
+import numpy as np
+from fastparquet import ParquetFile, write
+from statsmodels.tsa.arima_model import ARMA
+
+def fit_model_and_forecast(id_list, config):
+
+    # Cast collection of distinct time series IDs into Python list
+    id_list = list(id_list)
+
+    # Open connections to S3 File System
+    s3 = s3fs.S3FileSystem()
+    s3_open1 = s3.open
+    s3_open2 = boto.connect_s3(host=config['s3_host'])
+
+    # Loop over time series IDs
+    for i, id in enumerate(id_list):
+
+        # Determine S3 file path and load data into pandas dataframe
+        file_path = s3.glob(config['path_training_data_parquet'] + 'ID=' + str(id) +
+                            '/*.parquet')
+        df_data = ParquetFile(file_path,open_with=s3_open1).to_pandas()
+
+        # Sort time series data according to original ordering
+        df_data = df_data.sort_values('ORDER')
+
+        # Initialize dataframe to store forecast
+        df_forecasts = pd.DataFrame(np.nan, index=range(0, config['len_eval']),
+                                    columns=['FORECAST'])
+
+        # Add columns with ID, true data and ordering information
+        df_forecasts.insert(0, 'ID', id, allow_duplicates=True)
+        df_forecasts.insert(1, 'ORDER', np.arange(1, config['len_eval'] + 1))
+        df_forecasts.insert(2, 'DATA', df_data['DATA'][range((config['len_series'] -
+                                                              config['len_eval']),
+                                                             config['len_series'])].values,
+                                                             allow_duplicates=True)
+
+        # Loop over successive estimation windows
+        for j, train_end in enumerate(range((config['len_series'] - config['len_eval'] - 1), 
+                                            (config['len_series'] - 1))):
+
+            # Fit ARMA(2,2) model and forecast one-step ahead
+            model = ARMA(df_data['DATA'][range(0, train_end+1)], (2, 2)).fit(disp=False)
+            df_forecasts.at[j, 'FORECAST'] = model.predict(train_end+1, train_end+1)
+
+        # Write dataframe with forecast to S3 in Parquet file format
+        path = config['path_forecasts'] + 'ID=' + str(id) + '.parquet'
+        write(path, df_forecasts, write_index=False, append=False, open_with=s3_open1)
+
+        # Save fitted ARMA model to S3 in pickle file format
+        path = config['path_models'] + 'ID=' + str(id) + '.model'
+        with s3io.open(path, mode='w', s3_connection=s3_open2) as s3_file:
+            joblib.dump(model, s3_file)
+\end{python}
+
+Note that the function \emph{fit\_model\_and\_forecast()} takes an argument called \emph{id\_list}, containing a collection of unique time series IDs. In a non-parallel setting, this collection is simply a Python list with distinct IDs. 
+
+The outer loop in the function iterates over the list of IDs, using the ID information to read the time series data via \emph{fastparquet} from the corresponding directory in the S3. The inner loop contains the statements for model fitting and forecasting, iterating recursively over the estimation sample. The last two blocks of code are responsible for storing the fitted model and forecasts respectively. 
+
+\begin{sloppypar}
+In order to execute the forecasting algorithm in a non-distributed fashion, we simply import the \emph{fit\_model\_and\_forecast.py} module into another module called \emph{do\_non\_parallel\_forecasting.py} which generates a list of distinct IDs from our time series dataset and calls the \emph{fit\_model\_and\_forecast()} function:
+\end{sloppypar}
+
+\begin{python}[caption={\emph{do\_non\_parallel\_forecasting.py}}]
+from fit_model_and_forecast import fit_model_and_forecast
+
+def do_non_parallel_forecasting(spark_session, config):
+
+    # Load time series data into Spark dataframe
+    df = spark_session.read.parquet(config['path_training_data_parquet'])
+
+    # Create RDD with dictinct IDs
+    time_series_ids = df.select("ID").distinct().rdd
+
+    # Create Python list with dictinct IDs
+    time_series_ids = [int(i.ID) for i in time_series_ids.collect()]
+
+    # Perform non-parallel forecasting
+    fit_model_and_forecast(time_series_ids, config)
+\end{python}
+
+We can now extend our \emph{main.py} program to include a task for non-distributed forecasting by calling \emph{do\_non\_parallel\_forecasting()}:
+
+\begin{python}[caption={\emph{main.py}}]
+# Import Python modules
+from create_spark_session import create_spark_session
+from create_config import create_config
+from partition_and_save_dataset import partition_and_save_dataset
+from do_non_parallel_forecasting import do_non_parallel_forecasting
+
+def main():
+
+    # Create Spark session
+    spark_session = create_spark_session()
+
+    # Load config dictionary
+    config = create_config()
+
+    # Partition and save dataset in Parquet file format to S3
+    partition_and_save_dataset(spark_session, config)
+
+    # Perform non-parallel model fitting and forecasting
+    do_non_parallel_forecasting(spark_session, config)
+
+if __name__ == '__main__':
+    main()
+\end{python}  
+
+When running this program, the forecasting algorithm will be executed only on the master node of the cluster, i.e. the model fitting and forecasting task is not distributed to the Spark executors. The runtime of this program is taken as a performance benchmark against which the distributed forecasting algorithm can be evaluated.  
+
+\section{Parallelization}
+\label{sec:parallelization}
+
+The parallelization of the forecasting algorithm presented in the previous section only requires a few additional programming steps in PySpark. First, we create a new Python module called \emph{do\_parallel\_forecasting.py}:
+
+\begin{python}[caption={\emph{do\_parallel\_forecasting.py}}]
+def do_parallel_forecasting(spark_session, config):
+
+    # Load time series data into Spark dataframe
+    df = spark_session.read.parquet(config['path_training_data_parquet'])
+
+    # Create RDD with distinct IDs and repartition dataframe into 100 chunks
+    time_series_ids = df.select("ID").distinct().repartition(100).rdd
+
+    # Function to import model Python module on Spark executor for parallel forecasting
+    def import_module_on_spark_executor(time_series_ids, config):
+        from fit_model_and_forecast import fit_model_and_forecast
+        return fit_model_and_forecast(time_series_ids, config)
+
+    # Parallel model fitting and forecasting
+    time_series_ids.foreach(lambda x: import_module_on_spark_executor(x, config))
+\end{python}
+
+In the above code, we first load the time series data into a Spark dataframe and create a partitioned RDD with distinct time series IDs. By calling the \emph{repartition()} function, the number of RDD partitions is set to 100, cutting the distributed collection of IDs into 100 chunks. Given that we have 1,000 time series in our dataset, the average number of IDs in each partition is 10.\footnote{Note that Spark does not automatically distribute the number of elements evenly across partitions. Therefore, it is likely that some partitions contain more and others contain less than 10 elements.} Since Spark will run one task for each partition, the number of RDD partitions is an important parameter that determines the degree of parallelism of your Spark application. In this particular example, the 100 RDD partitions can be processed in parallel as long as there are sufficient cluster resources available in terms of the number of Spark executors and executor memory. 
+
+\begin{sloppypar}
+To apply our \emph{fit\_model\_and\_forecast.py} module to each RDD partition in a distributed fashion, we need to make sure that the module is imported by each Spark executor, before calling the function inside the module. Calling the function \emph{import\_module\_on\_spark\_executor()} as part of the \emph{foreach()} operation in the last statement of the \emph{do\_parallel\_forecasting.py} module ensures that each Spark executor imports the \emph{fit\_model\_and\_forecast.py} module.
+\end{sloppypar}
+
+In order to make the \emph{fit\_model\_and\_forecast.py} module available to all Spark executors, we need to add the module to the Spark context by calling the \emph{addPyFile()} function that takes as an argument the file path to the module. To finally execute our forecasting algorithm in a parallel fashion, we extend our \emph{main.py} program as follows:
+
+\begin{python}[caption={\emph{main.py}}]
+# Import Python modules
+from create_spark_session import create_spark_session
+from create_config import create_config
+from partition_and_save_dataset import partition_and_save_dataset
+from do_parallel_forecasting import do_parallel_forecasting
+
+
+def main():
+
+    # Create Spark session
+    spark_session = create_spark_session()
+
+    # Load config dictionary
+    config = create_config()
+
+    # Partition and save dataset in Parquet file format to S3
+    partition_and_save_dataset(spark_session, config)
+
+    # Add Python module to Spark context for distributed model fitting and forecasting
+    spark_session.sparkContext.addPyFile(config['base_path_hadoop'] + 
+                                         'fit_model_and_forecast.py')
+
+    # Perform parallel model fitting and forecasting
+    do_parallel_forecasting(spark_session, config)
+
+if __name__ == '__main__':
+    main()
+\end{python} 
+
+\section{Empirical runtime performance}
+\label{sec:empirical_results}
+
+This section provides experimental results of the runtime performance for the forecasting example described in sections \ref{sec:forecasting_example} and \ref{sec:parallelization}. Table 1 shows the runtime for two different execution schemes. In the first scenario, the forecasting algorithm is executed on the master node in a non-parallel fashion and, thus, mirrors a single-core single-machine execution scheme. This scenario is used as a benchmark case to evaluate the performance gain from the parallel execution scheme. 
+
+The cluster hardware has been configured to 13 EC2 instances of type \emph{m4.2xlarge}, comprising a total of 192 virtual CPUs and 384 GiB of RAM for the 12 worker nodes. The number of RDD partitions containing collections of distinct time series IDs is set to 100. Table \ref{tab:table1} shows the runtime results for the two different scenarios.  
+
+\begin{table}[H]
+  \begin{center}
+  \begin{threeparttable}
+    \caption{Runtime for different execution schemes}
+    \label{tab:table1}
+    \begin{tabular}{c|c|c|c|c|c}
+        \toprule
+      \textbf{Scenario} & \textbf{Parallel}& \textbf{vCPU} & \textbf{RAM} & \textbf{Partitions} & \textbf{Runtime}\\ 
+      \hline
+      1 & no & 16 & 32 & - & 12076 \\ 
+      2 & yes & 192 & 384 & 100 & 372 \\ 
+        \bottomrule
+     \end{tabular}
+    \begin{tablenotes}
+      \small
+      \item The results are based on an AWS EC2 instance type \emph{m4.2xlarge}. Runtime is measured in seconds, RAM is measured in GiB, \emph{vCPU} refers to \emph{virtual CPU} and \emph{Partitions} defines the number of RDD partitions, containing subsets of distinct time series IDs.  
+    \end{tablenotes}
+  \end{threeparttable}
+  \end{center}
+\end{table}
+
+The total runtime for the non-distributed scheme is about 200 minutes. This compares to roughly 6 minutes execution time for the parallel scheme, reducing runtime by about 95\%. Clearly, the runtime of the parallel scheme is strongly affected by the hardware configuration and the number of RDD partitions. An increase in the number of RDD partitions and a more powerful cluster with more CPUs and memory will most likely lead to even higher performance gains. While the impact of different hardware settings on the performance gain is beyond the scope of this paper, the results show that the parallelization scheme can be used to complete large model fitting and forecasting workloads that would be intractable without substantial parallelization.      
+
+
+\section{Conclusions}
+\label{sec:conclusions}
+
+This paper introduced a step-by-step practical guide for setting up a minimum working example of a distributed system for time series analysis and forecasting. The system is built in Apache Spark and the parallelization scheme is suitable (but not limited to) parallel computations on large time series datasets. A simple forecasting exercise illustrates that the parallelization scheme reduces total runtime performance substantially relative to a single-machine setting. The presented approach requires minimal installation and configuration effort and it can be implemented with little background in computer science and parallel programming. 
+
+
+
+\clearpage
+
+\bibliographystyle{plainnat}
+
+
+\bibliography{literature}
+
+\end{document}
