@@ -1,1 +1,5 @@
 .idea
+data/time_series_application/fitted_models/*
+data/time_series_application/forecasts/*
+data/time_series_application/parquet/*
+
