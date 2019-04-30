@@ -9,7 +9,7 @@ from do_parallel_forecasting import do_parallel_forecasting
 def main():
 
     # Set cloud modus manually
-    cloud_modus=False
+    cloud_modus=True
 
     # Create Spark session
     spark_session = create_spark_session()
@@ -21,13 +21,13 @@ def main():
     partition_and_save_dataset(spark_session, config)
 
     # Perform non-parallel model fitting and forecasting
-    do_non_parallel_forecasting(spark_session, config, cloud=cloud_modus)
+    # do_non_parallel_forecasting(spark_session, config, cloud=cloud_modus)
 
-    # # # Add Python module to Spark context for distributed model fitting and forecasting
-    # spark_session.sparkContext.addPyFile(config['base_path_hadoop'] + 'fit_model_and_forecast.py')
-    #
-    # # Perform parallel model fitting and forecasting
-    # do_parallel_forecasting(spark_session, config, cloud=cloud_modus)
+    # Add Python module to Spark context for distributed model fitting and forecasting
+    spark_session.sparkContext.addPyFile(config['base_path_hadoop'] + 'fit_model_and_forecast.py')
+
+    # Perform parallel model fitting and forecasting
+    do_parallel_forecasting(spark_session, config, cloud=cloud_modus)
 
 if __name__ == '__main__':
     main()
