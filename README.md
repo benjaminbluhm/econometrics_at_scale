@@ -16,7 +16,7 @@ Link to the paper:
 Data download: 
 
 | Data set        | Url                                                                        |
-------------------------------------------------------------------------------------------------
+|-----------------|----------------------------------------------------------------------------|
 | HDMA            |  https://www.dropbox.com/sh/y5vrc3fnhwvw14o/AAAkgKja5YVpTT2vSUM0dW6-a?dl=0 |
 | Simulated panel | https://www.dropbox.com/sh/vk2ra1ufupi0yky/AABHUX6FZxIOWdk9LMnNTy5ea?dl=0  |
 
