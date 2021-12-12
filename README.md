@@ -11,7 +11,7 @@ This repository contains all codes to replicate the results of our paper.
 
 Link to the paper: 
  - [Journal of Data Science]()
- - [Supplementary Material]()
+ - [Supplementary Material](https://github.com/benjaminbluhm/econometrics_at_scale/blob/master/supplementary_material/supplementary_material.pdf)
 
 Data download: 
 
