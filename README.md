@@ -20,7 +20,7 @@ Data download:
 | HDMA*           |  `https://www.dropbox.com/sh/y5vrc3fnhwvw14o/AAAkgKja5YVpTT2vSUM0dW6-a?dl=0` |
 | HDMA subset     |  `https://www.dropbox.com/s/z690uga5a0qrezv/HMDA_subsample.csv?dl=0`         |    
 | Simulated panel |  `https://www.dropbox.com/sh/vk2ra1ufupi0yky/AABHUX6FZxIOWdk9LMnNTy5ea?dl=0` |
-| Time series     | `add-link`                                                                   |
+| Time series     |  See Chapter 4.4 for simulation code                                         |
 
 
 * The original data can be obtained from the [FFIEC website](https://www.consumerfinance.gov/data-research/hmda/explore).
